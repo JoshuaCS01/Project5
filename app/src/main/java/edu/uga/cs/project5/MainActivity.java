@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -42,6 +43,10 @@ public class MainActivity extends AppCompatActivity {
         int selected = R.id.nav_browse;
         if (savedInstanceState != null) selected = savedInstanceState.getInt(SELECTED_TAB_KEY, R.id.nav_browse);
         bottomNav.setSelectedItemId(selected); // triggers listener -> fragment swap
+
+        TextView tvTitle = findViewById(R.id.tvTitle);
+        tvTitle.setOnClickListener(v -> logout());
+
     }
 
     @Override
@@ -109,5 +114,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(SELECTED_TAB_KEY, bottomNav.getSelectedItemId());
+    }
+
+    private void logout() {
+        FirebaseAuth.getInstance().signOut();
+        Intent intent = new Intent(MainActivity.this, AuthActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 }
