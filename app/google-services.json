@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "524107617304",
+    "firebase_url": "https://project5-7b2fc-default-rtdb.firebaseio.com",
+    "project_id": "project5-7b2fc",
+    "storage_bucket": "project5-7b2fc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524107617304:android:8779655500043253939f6d",
+        "android_client_info": {
+          "package_name": "edu.cs.uga.project5"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO6-n6WN8umgjy0h-gipAHBNoeXdIwrPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524107617304:android:c9081449d1f88561939f6d",
+        "android_client_info": {
+          "package_name": "edu.uga.cs.project5"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBO6-n6WN8umgjy0h-gipAHBNoeXdIwrPQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
