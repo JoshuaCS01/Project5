@@ -5,6 +5,7 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,14 +51,41 @@ public class CategoryListFragment extends Fragment {
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setAdapter(adapter);
 
+        adapter.setOnItemSettingsClickListener((category, anchor) -> {
+            android.widget.PopupMenu pm = new android.widget.PopupMenu(requireContext(), anchor);
+            pm.getMenu().add("Edit name");
+            pm.getMenu().add("Delete category");
+            pm.setOnMenuItemClickListener(item -> {
+                String title = item.getTitle().toString();
+                if (title.equals("Edit name")) {
+                    showEditDialog(category);
+                    return true;
+                } else if (title.equals("Delete category")) {
+                    new AlertDialog.Builder(requireContext())
+                            .setTitle("Delete category")
+                            .setMessage("Delete category '" + category.name + "'? Category must be empty.")
+                            .setPositiveButton("Delete", (d, w) -> deleteCategoryIfEmpty(category.id))
+                            .setNegativeButton("Cancel", null)
+                            .show();
+                    return true;
+                }
+                return false;
+            });
+            pm.show();
+        });
+
+
         categoriesRef = FirebaseDatabase.getInstance().getReference("categories");
 
         root.findViewById(R.id.fabAddCategory).setOnClickListener(v -> showAddDialog());
 
-        // click behavior for category rows (placeholder)
         adapter.setOnItemClickListener(category -> {
-            Toast.makeText(requireContext(), "Clicked: " + category.name, Toast.LENGTH_SHORT).show();
-            // TODO: navigate to items in this category
+            ItemsListFragment f = ItemsListFragment.create(category.id, category.name);
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, f)
+                    .addToBackStack(null)
+                    .commit();
         });
 
         attachListener();
@@ -80,7 +108,7 @@ public class CategoryListFragment extends Fragment {
                     list.add(c);
                 }
                 // sort alphabetically by name (case-insensitive)
-                Collections.sort(list, Comparator.comparing(cat -> cat.name == null ? "" : cat.name.toLowerCase(Locale.ROOT)));
+                list.sort(Comparator.comparing(cat -> cat.name == null ? "" : cat.name.toLowerCase(Locale.ROOT)));
                 adapter.setItems(list);
             }
 
@@ -118,6 +146,126 @@ public class CategoryListFragment extends Fragment {
                 .setNegativeButton("Cancel", null)
                 .show();
     }
+
+    // show a dialog to edit the category name; calls updateCategoryIfEmpty(...)
+    private void showEditDialog(final Category category) {
+        final EditText input = new EditText(requireContext());
+        input.setFilters(new InputFilter[] { new InputFilter.LengthFilter(60) });
+        input.setText(category.name != null ? category.name : "");
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Edit Category")
+                .setView(input)
+                .setPositiveButton("Update", (dialog, which) -> {
+                    String raw = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (TextUtils.isEmpty(raw)) {
+                        Toast.makeText(requireContext(), "Name cannot be empty", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    // Calls your existing method that checks emptiness and updates
+                    updateCategoryIfEmpty(category.id, raw);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+
+    // --- Empty check interface ---
+    private interface EmptyCheckCallback {
+        void onResult(boolean isEmpty);
+    }
+
+    // --- Check if category is empty ---
+    private void isCategoryEmpty(String catId, EmptyCheckCallback cb) {
+        DatabaseReference mappingRef = FirebaseDatabase.getInstance()
+                .getReference("category-items")
+                .child(catId);
+
+        mappingRef.get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                Log.d("CategoryCheck", "Failed to get category-items mapping");
+                // conservative: treat as not empty
+                cb.onResult(false);
+                return;
+            }
+
+            DataSnapshot snap = task.getResult();
+            boolean empty = snap == null || !snap.exists() || !snap.hasChildren();
+            Log.d("CategoryCheck", "Category " + catId + " empty: " + empty);
+            cb.onResult(empty);
+        });
+    }
+
+
+    private void updateCategoryIfEmpty(String catId, String newName) {
+        DatabaseReference catRef = FirebaseDatabase.getInstance()
+                .getReference("categories").child(catId);
+
+        catRef.get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) return;
+            DataSnapshot snap = task.getResult();
+            if (snap == null || !snap.exists()) return;
+
+            String owner = snap.child("createdBy").getValue(String.class);
+            if (!FirebaseAuth.getInstance().getUid().equals(owner)) return;
+
+            isCategoryEmpty(catId, isEmpty -> {
+                if (!isEmpty) {
+                    Toast.makeText(requireContext(), "Category not empty — cannot rename.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("name", newName);
+                updates.put("createdAt", ServerValue.TIMESTAMP);
+
+                catRef.updateChildren(updates).addOnCompleteListener(uTask -> {
+                    if (uTask.isSuccessful()) {
+                        Toast.makeText(requireContext(), "Category updated", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to update category", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+        });
+    }
+
+    private void deleteCategoryIfEmpty(String catId) {
+        DatabaseReference catRef = FirebaseDatabase.getInstance()
+                .getReference("categories").child(catId);
+
+        catRef.get().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) return;
+            DataSnapshot snap = task.getResult();
+            if (snap == null || !snap.exists()) return;
+
+            String owner = snap.child("createdBy").getValue(String.class);
+            if (!FirebaseAuth.getInstance().getUid().equals(owner)) return;
+
+            isCategoryEmpty(catId, isEmpty -> {
+                if (!isEmpty) {
+                    Toast.makeText(requireContext(), "Category must be empty to delete", Toast.LENGTH_SHORT).show();
+                    Log.d("CategoryDelete", "Current user UID: " + FirebaseAuth.getInstance().getUid());
+
+                    return;
+                }
+
+                // Remove category
+                catRef.removeValue().addOnCompleteListener(rTask -> {
+                    if (rTask.isSuccessful()) {
+                        Toast.makeText(requireContext(), "Category deleted", Toast.LENGTH_SHORT).show();
+
+                        // Optionally, remove empty mapping in /category-items
+                        DatabaseReference mappingRef = FirebaseDatabase.getInstance()
+                                .getReference("category-items").child(catId);
+                        mappingRef.removeValue();
+                    } else {
+                        Toast.makeText(requireContext(), "Failed to delete category", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+        });
+    }
+
 
     private void addCategoryIfNotExists(String name) {
         // simple uniqueness check (case-insensitive). We load current snapshot once and check.

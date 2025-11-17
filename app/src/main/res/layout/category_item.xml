@@ -14,8 +14,9 @@
         android:textSize="18sp"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/btnSettings"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"/>
+        app:layout_constraintHorizontal_bias="0" />
 
     <TextView
         android:id="@+id/tvCategoryMeta"
@@ -25,7 +26,19 @@
         android:textSize="12sp"
         app:layout_constraintStart_toStartOf="@id/tvCategoryName"
         app:layout_constraintTop_toBottomOf="@id/tvCategoryName"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toEndOf="@id/tvCategoryName"
         android:layout_marginTop="6dp"/>
+
+    <ImageButton
+        android:id="@+id/btnSettings"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Category settings"
+        android:scaleType="centerInside"
+        android:src="@android:drawable/ic_menu_more"
+        app:tint="?android:attr/textColorPrimary"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
