@@ -46,21 +46,28 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
 
     @Override
     public void onBindViewHolder(@NonNull Holder holder, int position) {
-        Category c = items.get(position);
-        holder.name.setText(c.name != null ? c.name : "—");
-        String meta = "by " + (c.createdBy != null ? shortUid(c.createdBy) : "unknown");
-        if (c.createdAt > 0) {
-            String date = DateFormat.getDateTimeInstance().format(new Date(c.createdAt));
-            meta += " • " + date;
-        }
-        holder.meta.setText(meta);
+
+        //sets the name
+        Category cat = items.get(position);
+        holder.name.setText(cat.name != null ? cat.name : "—");
+
+        //Sets the date and time
+        long tempTime = cat.createdAt;
+        String date = null;
+        date =  DateFormat.getDateTimeInstance().format(new Date(tempTime));
+        holder.meta.setText(date);
+
+        //Sets the seller username
+        String seller = cat.createdByName;
+        seller = "Sold by: " + seller;
+        holder.seller.setText(seller);
 
         holder.itemView.setOnClickListener(v -> {
-            if (clickListener != null) clickListener.onItemClick(c);
+            if (clickListener != null) clickListener.onItemClick(cat);
         });
 
         holder.btnSettings.setOnClickListener(v -> {
-            if (settingsListener != null) settingsListener.onItemSettingsClick(c, v);
+            if (settingsListener != null) settingsListener.onItemSettingsClick(cat, v);
         });
     }
 
@@ -68,12 +75,13 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
     public int getItemCount() { return items.size(); }
 
     static class Holder extends RecyclerView.ViewHolder {
-        TextView name, meta;
+        TextView name, meta, seller;
         View btnSettings;
         Holder(@NonNull View itemView) {
             super(itemView);
             name = itemView.findViewById(R.id.tvCategoryName);
             meta = itemView.findViewById(R.id.tvCategoryMeta);
+            seller = itemView.findViewById(R.id.seller);
             btnSettings = itemView.findViewById(R.id.btnSettings);
         }
     }

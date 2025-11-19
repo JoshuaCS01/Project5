@@ -12,5 +12,7 @@ public class Item {
     public Boolean available = true;
     public String categoryId; // may be present if single-category creation existed
 
+    public String createdByName;
+
     public Item() {}
 }

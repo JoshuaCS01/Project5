@@ -41,14 +41,16 @@ public class AddItemFragment extends Fragment {
     private List<String> catNames = new ArrayList<>();
     private boolean[] checkedCats;
 
-    @Nullable @Override
+    @Nullable
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_add_item, container, false);
     }
 
-    @Override public void onViewCreated(@NonNull View v, @Nullable Bundle s) {
+    @Override
+    public void onViewCreated(@NonNull View v, @Nullable Bundle s) {
         super.onViewCreated(v, s);
         etTitle = v.findViewById(R.id.etItemTitle);
         etDescription = v.findViewById(R.id.etItemDescription);
@@ -111,7 +113,7 @@ public class AddItemFragment extends Fragment {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Select categories (multiple)")
                 .setMultiChoiceItems(names, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
-                .setPositiveButton("OK", (d,w) -> {
+                .setPositiveButton("OK", (d, w) -> {
                     checkedCats = checked;
                     updateSelectedCatsText();
                 })
@@ -149,7 +151,7 @@ public class AddItemFragment extends Fragment {
                         Toast.makeText(requireContext(), "Failed to create category id", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    Map<String,Object> cat = new HashMap<>();
+                    Map<String, Object> cat = new HashMap<>();
                     cat.put("name", raw);
                     cat.put("createdBy", FirebaseAuth.getInstance().getUid());
                     cat.put("createdAt", ServerValue.TIMESTAMP);
@@ -186,54 +188,102 @@ public class AddItemFragment extends Fragment {
         final boolean isFree = cbFree.isChecked();
         final String priceText = etPrice.getText() != null ? etPrice.getText().toString().trim() : "";
 
-        if (TextUtils.isEmpty(title)) { Toast.makeText(requireContext(), "Title required", Toast.LENGTH_SHORT).show(); return; }
-        if (!isFree && TextUtils.isEmpty(priceText)) { Toast.makeText(requireContext(), "Price required or mark free", Toast.LENGTH_SHORT).show(); return; }
+        if (TextUtils.isEmpty(title)) {
+            Toast.makeText(requireContext(), "Title required", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!isFree && TextUtils.isEmpty(priceText)) {
+            Toast.makeText(requireContext(), "Price required or mark free", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         // collect selected category ids
         List<String> selected = new ArrayList<>();
-        for (int i = 0; i < catIds.size(); i++) {
-            if (i < checkedCats.length && checkedCats[i]) selected.add(catIds.get(i));
+        if (checkedCats != null) {
+            for (int i = 0; i < catIds.size(); i++) {
+                if (i < checkedCats.length && checkedCats[i]) selected.add(catIds.get(i));
+            }
         }
-        if (selected.isEmpty()) { Toast.makeText(requireContext(), "Select at least one category", Toast.LENGTH_SHORT).show(); return; }
+        if (selected.isEmpty()) {
+            Toast.makeText(requireContext(), "Select at least one category", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         long priceCents = 0;
         if (!isFree) {
-            try { double p = Double.parseDouble(priceText); priceCents = Math.round(p * 100.0); }
-            catch (Exception e) { Toast.makeText(requireContext(), "Invalid price", Toast.LENGTH_SHORT).show(); return; }
+            try {
+                // use BigDecimal if you need exactness; here we validate and convert
+                double p = Double.parseDouble(priceText);
+                if (p < 0) {
+                    Toast.makeText(requireContext(), "Price must be non-negative", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                priceCents = Math.round(p * 100.0);
+            } catch (Exception e) {
+                Toast.makeText(requireContext(), "Invalid price", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
+        final String uid = FirebaseAuth.getInstance().getUid();
+        if (uid == null) {
+            Toast.makeText(requireContext(), "You must be signed in to post items", Toast.LENGTH_SHORT).show();
+            return;
         }
 
         setLoading(true);
 
-        DatabaseReference root = FirebaseDatabase.getInstance().getReference();
-        String itemId = root.child("items").push().getKey();
-        if (itemId == null) { setLoading(false); Toast.makeText(requireContext(), "Failed to generate id", Toast.LENGTH_SHORT).show(); return; }
-
-        Map<String, Object> item = new HashMap<>();
-        item.put("title", title);
-        if (!TextUtils.isEmpty(description)) item.put("description", description);
-        item.put("isFree", isFree);
-        if (!isFree) item.put("priceCents", priceCents);
-        item.put("authorId", FirebaseAuth.getInstance().getUid());
-        item.put("createdAt", ServerValue.TIMESTAMP);
-        item.put("available", true);
-        // For backwards-compat, keep single categoryId set to first selection
-        item.put("categoryId", selected.get(0));
-
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("/items/" + itemId, item);
-        for (String catId : selected) {
-            updates.put("/category-items/" + catId + "/" + itemId, true);
-        }
-
-        root.updateChildren(updates).addOnCompleteListener(task -> {
-            setLoading(false);
-            if (task.isSuccessful()) {
-                Toast.makeText(requireContext(), "Item posted", Toast.LENGTH_SHORT).show();
-                // go back
-                requireActivity().getSupportFragmentManager().popBackStack();
-            } else {
-                Toast.makeText(requireContext(), "Failed to post item: " + (task.getException()!=null ? task.getException().getMessage() : ""), Toast.LENGTH_LONG).show();
+        // fetch user display name, then create item in the callback
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(uid);
+        long finalPriceCents = priceCents;
+        userRef.get().addOnCompleteListener(userTask -> {
+            String displayName = null;
+            if (userTask.isSuccessful()) {
+                DataSnapshot userSnap = userTask.getResult();
+                if (userSnap != null && userSnap.exists()) {
+                    displayName = userSnap.child("displayName").getValue(String.class);
+                    if (displayName == null) {
+                        displayName = userSnap.child("username").getValue(String.class);
+                    }
+                    if (displayName != null) displayName = displayName.trim();
+                }
             }
+
+            DatabaseReference root = FirebaseDatabase.getInstance().getReference();
+            String itemId = root.child("items").push().getKey();
+            if (itemId == null) {
+                setLoading(false);
+                Toast.makeText(requireContext(), "Failed to generate id", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            Map<String, Object> item = new HashMap<>();
+            if (displayName != null) item.put("createdByName", displayName);
+            item.put("title", title);
+            if (!TextUtils.isEmpty(description)) item.put("description", description);
+            item.put("isFree", isFree);
+            if (!isFree) item.put("priceCents", finalPriceCents);
+            item.put("authorId", uid);
+            item.put("createdAt", ServerValue.TIMESTAMP);
+            item.put("available", true);
+            item.put("categoryId", selected.get(0));
+
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("/items/" + itemId, item);
+            for (String catId : selected) {
+                updates.put("/category-items/" + catId + "/" + itemId, true);
+            }
+
+            root.updateChildren(updates).addOnCompleteListener(task -> {
+                setLoading(false);
+                if (task.isSuccessful()) {
+                    Toast.makeText(requireContext(), "Item posted", Toast.LENGTH_SHORT).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                } else {
+                    String msg = task.getException() != null ? task.getException().getMessage() : "";
+                    Toast.makeText(requireContext(), "Failed to post item: " + msg, Toast.LENGTH_LONG).show();
+                }
+            });
         });
     }
 }

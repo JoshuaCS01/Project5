@@ -29,6 +29,17 @@
         app:layout_constraintEnd_toEndOf="@id/tvCategoryName"
         android:layout_marginTop="6dp"/>
 
+    <TextView
+        android:id="@+id/seller"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="created by X — date"
+        android:textSize="12sp"
+        app:layout_constraintStart_toStartOf="@id/tvCategoryMeta"
+        app:layout_constraintTop_toBottomOf="@id/tvCategoryMeta"
+        app:layout_constraintEnd_toEndOf="@id/tvCategoryMeta"
+        android:layout_marginTop="6dp"/>
+
     <ImageButton
         android:id="@+id/btnSettings"
         android:layout_width="36dp"

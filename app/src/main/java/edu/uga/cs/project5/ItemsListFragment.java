@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -60,6 +61,19 @@ public class ItemsListFragment extends Fragment {
             categoryId = getArguments().getString(ARG_CAT_ID);
             categoryName = getArguments().getString(ARG_CAT_NAME);
         }
+
+        FloatingActionButton fab = root.findViewById(R.id.fabAddItem);
+
+        fab.setOnClickListener(v -> {
+            AddItemFragment f = new AddItemFragment();
+
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, f)
+                    .addToBackStack(null)
+                    .commit();
+        });
+
 
         TextView tvTitle = root.findViewById(R.id.tvItemsTitle);
         tvTitle.setText(categoryName != null ? categoryName : "Items");

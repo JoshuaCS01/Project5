@@ -6,6 +6,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.text.BreakIterator;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -28,22 +30,44 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
     }
 
     @Override public void onBindViewHolder(@NonNull Holder holder, int position) {
-        Item it = items.get(position);
-        holder.title.setText(it.title != null ? it.title : "—");
-        String meta = it.isFree != null && it.isFree ? "FREE" : (it.priceCents != null ? String.format("$%.2f", it.priceCents/100.0) : "");
-        long ts = it.createdAt != null ? it.createdAt : 0L;
-        String date = ts > 0 ? DateFormat.getDateTimeInstance().format(new Date(ts)) : "";
-        holder.meta.setText(meta + " • " + date);
+
+
+        //Sets the title
+        Item item = items.get(position);
+        holder.title.setText(item.title != null ? item.title : "—");
+
+        //Sets the price
+        String price = null;
+        if (item.isFree != null && item.isFree) {
+            price = "FREE";
+        }
+        if (item.priceCents != null) {
+            price = String.format("$%.2f", item.priceCents / 100.0);
+        }
+
+        //Sets the date and time
+        long tempTime = item.createdAt;
+        String date = null;
+        date =  DateFormat.getDateTimeInstance().format(new Date(tempTime));
+        date = price + " • " + date;
+        holder.meta.setText(date);
+
+        //Sets the seller username
+        String seller = item.createdByName;
+        seller = "Sold by: " + seller;
+        holder.seller.setText(seller);
+
     }
 
     @Override public int getItemCount() { return items.size(); }
 
     static class Holder extends RecyclerView.ViewHolder {
-        TextView title, meta;
+        TextView title, meta, seller;
         Holder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.tvItemTitle);
             meta = itemView.findViewById(R.id.tvItemMeta);
+            seller = itemView.findViewById(R.id.seller);
         }
     }
 }

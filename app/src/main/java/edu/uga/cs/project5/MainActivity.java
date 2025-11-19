@@ -70,10 +70,6 @@ public class MainActivity extends AppCompatActivity {
             tag = "browse";
             to = fm.findFragmentByTag(tag);
             if (to == null) to = new CategoryListFragment(); // implement later
-        } else if (itemId == R.id.nav_add) {
-            tag = "add";
-            to = fm.findFragmentByTag(tag);
-            if (to == null) to = new AddItemFragment(); // implement later
         } else if (itemId == R.id.nav_myitems) {
             tag = "myitems";
             to = fm.findFragmentByTag(tag);

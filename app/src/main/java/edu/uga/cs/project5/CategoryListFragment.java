@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -268,38 +269,102 @@ public class CategoryListFragment extends Fragment {
 
 
     private void addCategoryIfNotExists(String name) {
-        // simple uniqueness check (case-insensitive). We load current snapshot once and check.
-        categoriesRef.get().addOnCompleteListener(task -> {
-            if (!task.isSuccessful()) {
+        if (name == null) return;
+        final String trimmed = name.trim();
+        if (trimmed.isEmpty()) {
+            Toast.makeText(requireContext(), "Name cannot be empty", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (categoriesRef == null) {
+            categoriesRef = FirebaseDatabase.getInstance().getReference("categories");
+        }
+
+        // 1) Check duplicates (case-insensitive)
+        categoriesRef.get().addOnCompleteListener(checkTask -> {
+            if (!checkTask.isSuccessful()) {
                 Toast.makeText(requireContext(), "Error checking existing categories", Toast.LENGTH_SHORT).show();
                 return;
             }
-            DataSnapshot snap = task.getResult();
+
+            DataSnapshot snap = checkTask.getResult();
             boolean exists = false;
-            for (DataSnapshot cSnap : snap.getChildren()) {
-                String existing = cSnap.child("name").getValue(String.class);
-                if (existing != null && existing.equalsIgnoreCase(name)) {
-                    exists = true;
-                    break;
+            if (snap != null) {
+                for (DataSnapshot cSnap : snap.getChildren()) {
+                    String existing = cSnap.child("name").getValue(String.class);
+                    if (existing != null && existing.equalsIgnoreCase(trimmed)) {
+                        exists = true;
+                        break;
+                    }
                 }
             }
+
             if (exists) {
                 Toast.makeText(requireContext(), "Category already exists", Toast.LENGTH_SHORT).show();
                 return;
             }
-            // create new
-            String catId = categoriesRef.push().getKey();
-            Map<String, Object> cat = new HashMap<>();
-            cat.put("name", name);
-            cat.put("createdBy", FirebaseAuth.getInstance().getUid());
-            cat.put("createdAt", ServerValue.TIMESTAMP);
-            categoriesRef.child(catId).setValue(cat).addOnCompleteListener(setTask -> {
-                if (setTask.isSuccessful()) {
-                    Toast.makeText(requireContext(), "Category added", Toast.LENGTH_SHORT).show();
-                } else {
-                    Toast.makeText(requireContext(), "Failed to add category", Toast.LENGTH_SHORT).show();
-                }
-            });
+
+            // 2) Resolve current user info (uid + friendly name)
+            final String uid = FirebaseAuth.getInstance().getUid();
+            if (uid == null) {
+                Toast.makeText(requireContext(), "You must be signed in to create a category", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Try FirebaseAuth profile first (fast, no extra DB read)
+            String profileName = null;
+            if (FirebaseAuth.getInstance().getCurrentUser() != null
+                    && FirebaseAuth.getInstance().getCurrentUser().getDisplayName() != null) {
+                profileName = FirebaseAuth.getInstance().getCurrentUser().getDisplayName().trim();
+            }
+
+            if (profileName != null && !profileName.isEmpty()) {
+                // we have display name already — write category now
+                writeNewCategory(trimmed, uid, profileName);
+            } else {
+                // fallback: read /users/{uid} for displayName or username
+                DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(uid);
+                userRef.get().addOnCompleteListener(userTask -> {
+                    String displayName = null;
+                    if (userTask.isSuccessful()) {
+                        DataSnapshot userSnap = userTask.getResult();
+                        if (userSnap != null && userSnap.exists()) {
+                            displayName = userSnap.child("displayName").getValue(String.class);
+                            if (displayName == null) {
+                                displayName = userSnap.child("username").getValue(String.class);
+                            }
+                            if (displayName != null) displayName = displayName.trim();
+                        }
+                    }
+                    // final fallback to short uid if still null
+                    if (displayName == null || displayName.isEmpty()) {
+                        displayName = uid.length() > 8 ? uid.substring(0, 8) : uid;
+                    }
+                    writeNewCategory(trimmed, uid, displayName);
+                });
+            }
         });
     }
+
+    private void writeNewCategory(String name, String uid, String displayName) {
+        String catId = categoriesRef.push().getKey();
+        if (catId == null) {
+            Toast.makeText(requireContext(), "Failed to create category id", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Map<String, Object> cat = new HashMap<>();
+        cat.put("name", name);
+        cat.put("createdBy", uid);               // keep uid for ownership checks
+        cat.put("createdByName", displayName);   // human friendly
+        cat.put("createdAt", ServerValue.TIMESTAMP);
+
+        categoriesRef.child(catId).setValue(cat).addOnCompleteListener(setTask -> {
+            if (setTask.isSuccessful()) {
+                Toast.makeText(requireContext(), "Category added", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(requireContext(), "Failed to add category", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
 }
