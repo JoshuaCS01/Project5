@@ -2,14 +2,18 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/nav_browse"
-        android:icon="@android:drawable/ic_menu_search"
+        android:icon="@drawable/search_24px"
         android:title="Browse" />
     <item
         android:id="@+id/nav_myitems"
-        android:icon="@android:drawable/ic_menu_agenda"
+        android:icon="@drawable/list_24px"
         android:title="My Items" />
     <item
-        android:id="@+id/nav_tx"
-        android:icon="@android:drawable/ic_menu_send"
-        android:title="Transactions" />
+        android:id="@+id/nav_Ptx"
+        android:icon="@drawable/pending_actions_24px"
+        android:title="Pending" />
+    <item
+        android:id="@+id/nav_Ctx"
+        android:icon="@drawable/inventory_24px"
+        android:title="Completed" />
 </menu>

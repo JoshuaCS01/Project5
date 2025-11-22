@@ -9,9 +9,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
-public class TransactionsFragment extends Fragment {
+public class PendingTransactionsFragment extends Fragment {
 
-    public TransactionsFragment() { }
+    public PendingTransactionsFragment() { }
 
     @Nullable @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -20,8 +20,8 @@ public class TransactionsFragment extends Fragment {
         View root = inflater.inflate(R.layout.fragment_simple, container, false);
         TextView title = root.findViewById(R.id.tvPlaceholderTitle);
         TextView subtitle = root.findViewById(R.id.tvPlaceholderSubtitle);
-        title.setText("Transactions — Placeholder");
-        subtitle.setText("This will show pending buys/sells and completed transactions.");
+        title.setText("Pending Transactions — Placeholder");
+        subtitle.setText("This will show pending transactions.");
         return root;
     }
 }

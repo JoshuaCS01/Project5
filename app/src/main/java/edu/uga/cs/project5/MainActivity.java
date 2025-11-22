@@ -15,9 +15,6 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
-import edu.uga.cs.project5.AuthActivity;
-import edu.uga.cs.project5.R;
-
 public class MainActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
@@ -74,10 +71,14 @@ public class MainActivity extends AppCompatActivity {
             tag = "myitems";
             to = fm.findFragmentByTag(tag);
             if (to == null) to = new MyItemsFragment(); // implement later
-        } else if (itemId == R.id.nav_tx) {
-            tag = "transactions";
+        } else if (itemId == R.id.nav_Ptx) {
+            tag = "pending";
             to = fm.findFragmentByTag(tag);
-            if (to == null) to = new TransactionsFragment(); // implement later
+            if (to == null) to = new PendingTransactionsFragment(); // implement later
+        }else if (itemId == R.id.nav_Ctx) {
+            tag = "completed";
+            to = fm.findFragmentByTag(tag);
+            if (to == null) to = new CompletedTransactionsFragment(); // implement later
         }
 
         if (to != null && to != current) {
