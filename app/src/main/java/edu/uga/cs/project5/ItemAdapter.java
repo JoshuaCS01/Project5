@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.BreakIterator;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -27,6 +28,16 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
     public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_card, parent, false);
         return new Holder(v);
+    }
+
+    public interface OnItemActionListener {
+        void onItemClicked(Item item); // single tap -> show actions
+    }
+
+    private OnItemActionListener actionListener;
+
+    public void setOnItemActionListener(OnItemActionListener l) {
+        this.actionListener = l;
     }
 
     @Override public void onBindViewHolder(@NonNull Holder holder, int position) {
@@ -48,7 +59,7 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
         //Sets the date and time
         long tempTime = item.createdAt;
         String date = null;
-        date =  DateFormat.getDateTimeInstance().format(new Date(tempTime));
+        date =  new SimpleDateFormat("MMM d, yyyy HH:mm").format(new Date(tempTime));
         date = price + " • " + date;
         holder.meta.setText(date);
 
@@ -57,17 +68,30 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
         seller = "Sold by: " + seller;
         holder.seller.setText(seller);
 
+        if (item.category != null) {
+            holder.category.setText( "Category: " + item.category);
+        } else {
+            holder.category.setText("Category: —");
+        }
+
+        holder.itemView.setOnClickListener(v -> {
+            if (actionListener != null) actionListener.onItemClicked(item);
+        });
+
     }
 
     @Override public int getItemCount() { return items.size(); }
 
     static class Holder extends RecyclerView.ViewHolder {
-        TextView title, meta, seller;
+        TextView title, meta, seller, category;
+
         Holder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.tvItemTitle);
             meta = itemView.findViewById(R.id.tvItemMeta);
             seller = itemView.findViewById(R.id.seller);
+            category = itemView.findViewById(R.id.category_name);   // <-- NEW
         }
     }
+
 }

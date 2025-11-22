@@ -40,19 +40,19 @@
             android:text="Free (no price)"
             android:layout_marginTop="8dp"/>
 
-        <Button
-            android:id="@+id/btnSelectCats"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Select categories"
-            android:layout_marginTop="12dp"/>
-
         <TextView
             android:id="@+id/tvSelectedCats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="No categories selected"
             android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/btnSelectCats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select category"
+            android:layout_marginTop="12dp"/>
 
         <Button
             android:id="@+id/btnAddCategory"

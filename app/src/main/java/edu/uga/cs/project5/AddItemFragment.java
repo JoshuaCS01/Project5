@@ -30,22 +30,50 @@ import java.util.Map;
 
 public class AddItemFragment extends Fragment {
 
+    private static final String ARG_CATEGORY_ID = "arg_category_id";
+    private static final String ARG_CATEGORY_NAME = "arg_category_name";
+
     private EditText etTitle, etDescription, etPrice;
     private CheckBox cbFree;
     private Button btnSelectCats, btnAddCategory, btnPost;
     private ProgressBar progress;
     private TextView tvSelectedCats;
 
-    // category lists for selection
     private List<String> catIds = new ArrayList<>();
     private List<String> catNames = new ArrayList<>();
-    private boolean[] checkedCats;
+    private int selectedCatIndex = -1; // -1 = none selected
+
+    // If fragment opened with a preselected category
+    private String initialCategoryId = null;
+    private String initialCategoryName = null;
+
+    public AddItemFragment() { /* required empty ctor */ }
+
+    /**
+     * Call this to open AddItemFragment preselected to a category.
+     * Pass null for either parameter if you don't have it.
+     */
+    public static AddItemFragment newInstance(@Nullable String categoryId, @Nullable String categoryName) {
+        AddItemFragment f = new AddItemFragment();
+        Bundle args = new Bundle();
+        if (categoryId != null) args.putString(ARG_CATEGORY_ID, categoryId);
+        if (categoryName != null) args.putString(ARG_CATEGORY_NAME, categoryName);
+        f.setArguments(args);
+        return f;
+    }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+
+        // read args here so they exist early
+        Bundle a = getArguments();
+        if (a != null) {
+            initialCategoryId = a.getString(ARG_CATEGORY_ID, null);
+            initialCategoryName = a.getString(ARG_CATEGORY_NAME, null);
+        }
         return inflater.inflate(R.layout.fragment_add_item, container, false);
     }
 
@@ -67,7 +95,7 @@ public class AddItemFragment extends Fragment {
             if (isChecked) etPrice.setText("");
         });
 
-        btnSelectCats.setOnClickListener(x -> showCategoryMultiSelect());
+        btnSelectCats.setOnClickListener(x -> showCategorySingleSelect());
         btnAddCategory.setOnClickListener(x -> showAddCategoryDialog());
         btnPost.setOnClickListener(x -> submitItem());
         loadCategories();
@@ -85,7 +113,7 @@ public class AddItemFragment extends Fragment {
             catNames.clear();
             if (!task.isSuccessful()) {
                 Toast.makeText(requireContext(), "Failed to load categories", Toast.LENGTH_SHORT).show();
-                checkedCats = new boolean[0];
+                selectedCatIndex = -1;
                 updateSelectedCatsText();
                 return;
             }
@@ -98,38 +126,67 @@ public class AddItemFragment extends Fragment {
                     catNames.add(name);
                 }
             }
-            checkedCats = new boolean[catIds.size()];
+
+            // If the fragment was opened with an initialCategoryId, select it automatically (if found)
+            if (initialCategoryId != null) {
+                int idx = catIds.indexOf(initialCategoryId);
+                if (idx >= 0) {
+                    selectedCatIndex = idx;
+                } else {
+                    // fallback: if category name was provided, try to match by name
+                    if (initialCategoryName != null) {
+                        int idxByName = catNames.indexOf(initialCategoryName);
+                        selectedCatIndex = idxByName >= 0 ? idxByName : -1;
+                    } else {
+                        selectedCatIndex = -1;
+                    }
+                }
+            } else {
+                // default behavior: no preselection
+                selectedCatIndex = -1;
+            }
+
+            // Update visible UI
             updateSelectedCatsText();
+
+            // If we had an initial category, hide the select button so user isn't prompted again.
+            // If you'd prefer the user be allowed to change it, comment out the next lines.
+            if (initialCategoryId != null) {
+                btnSelectCats.setVisibility(View.GONE);
+                // optionally disable add-category if you don't want them to create new categories here:
+                // btnAddCategory.setVisibility(View.GONE);
+            } else {
+                btnSelectCats.setVisibility(View.VISIBLE);
+            }
         });
     }
 
-    private void showCategoryMultiSelect() {
+    private void showCategorySingleSelect() {
         if (catIds.isEmpty()) {
             Toast.makeText(requireContext(), "No categories available", Toast.LENGTH_SHORT).show();
             return;
         }
         String[] names = catNames.toArray(new String[0]);
-        boolean[] checked = checkedCats.clone();
         new AlertDialog.Builder(requireContext())
-                .setTitle("Select categories (multiple)")
-                .setMultiChoiceItems(names, checked, (dialog, which, isChecked) -> checked[which] = isChecked)
-                .setPositiveButton("OK", (d, w) -> {
-                    checkedCats = checked;
-                    updateSelectedCatsText();
+                .setTitle("Select a category")
+                .setSingleChoiceItems(names, selectedCatIndex, (dialog, which) -> {
+                    // update selection immediately when user taps
+                    selectedCatIndex = which;
                 })
+                .setPositiveButton("OK", (d, w) -> updateSelectedCatsText())
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
     private void updateSelectedCatsText() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < catNames.size(); i++) {
-            if (i < checkedCats.length && checkedCats[i]) {
-                if (sb.length() > 0) sb.append(", ");
-                sb.append(catNames.get(i));
-            }
+        if (selectedCatIndex >= 0 && selectedCatIndex < catNames.size()) {
+            tvSelectedCats.setText(catNames.get(selectedCatIndex));
+        } else if (initialCategoryName != null && (selectedCatIndex < 0 || catNames.isEmpty())) {
+            // if categories haven't loaded yet but we were given a name, show it
+            tvSelectedCats.setText(initialCategoryName);
+        } else {
+            tvSelectedCats.setText("No categories selected");
         }
-        tvSelectedCats.setText(sb.length() > 0 ? sb.toString() : "No categories selected");
     }
 
     private void showAddCategoryDialog() {
@@ -144,7 +201,6 @@ public class AddItemFragment extends Fragment {
                         Toast.makeText(requireContext(), "Name required", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    // create category and reload categories, mark it selected
                     DatabaseReference categoriesRef = FirebaseDatabase.getInstance().getReference("categories");
                     String newId = categoriesRef.push().getKey();
                     if (newId == null) {
@@ -159,20 +215,32 @@ public class AddItemFragment extends Fragment {
                         if (task.isSuccessful()) {
                             Toast.makeText(requireContext(), "Category created", Toast.LENGTH_SHORT).show();
                             // reload categories and automatically select the new one
-                            loadCategories();
-                            // mark newly created as selected after small delay (we'll find it by name)
-                            categoriesRef.child(newId).get().addOnCompleteListener(g -> {
-                                int idx = catIds.indexOf(newId);
-                                if (idx >= 0) {
-                                    if (checkedCats == null || checkedCats.length < catIds.size()) {
-                                        boolean[] n = new boolean[catIds.size()];
-                                        System.arraycopy(checkedCats, 0, n, 0, Math.min(checkedCats.length, n.length));
-                                        checkedCats = n;
+                            categoriesRef.get().addOnCompleteListener(g -> {
+                                if (g.isSuccessful()) {
+                                    catIds.clear();
+                                    catNames.clear();
+                                    DataSnapshot snap = g.getResult();
+                                    for (DataSnapshot c : snap.getChildren()) {
+                                        String id = c.getKey();
+                                        String name = c.child("name").getValue(String.class);
+                                        if (id != null && name != null) {
+                                            catIds.add(id);
+                                            catNames.add(name);
+                                        }
                                     }
-                                    checkedCats[idx] = true;
+                                    int idx = catIds.indexOf(newId);
+                                    selectedCatIndex = idx >= 0 ? idx : -1;
+                                    // since user just added a category, clear any initialCategoryId (they intentionally changed)
+                                    initialCategoryId = null;
+                                    initialCategoryName = null;
+                                    // make sure select button is visible so they can change if desired
+                                    btnSelectCats.setVisibility(View.VISIBLE);
                                     updateSelectedCatsText();
+                                } else {
+                                    loadCategories();
                                 }
                             });
+
                         } else {
                             Toast.makeText(requireContext(), "Failed to create category", Toast.LENGTH_SHORT).show();
                         }
@@ -197,22 +265,15 @@ public class AddItemFragment extends Fragment {
             return;
         }
 
-        // collect selected category ids
-        List<String> selected = new ArrayList<>();
-        if (checkedCats != null) {
-            for (int i = 0; i < catIds.size(); i++) {
-                if (i < checkedCats.length && checkedCats[i]) selected.add(catIds.get(i));
-            }
-        }
-        if (selected.isEmpty()) {
-            Toast.makeText(requireContext(), "Select at least one category", Toast.LENGTH_SHORT).show();
+        if (selectedCatIndex < 0 || selectedCatIndex >= catIds.size()) {
+            Toast.makeText(requireContext(), "Select a category", Toast.LENGTH_SHORT).show();
             return;
         }
+        String selectedCatId = catIds.get(selectedCatIndex);
 
         long priceCents = 0;
         if (!isFree) {
             try {
-                // use BigDecimal if you need exactness; here we validate and convert
                 double p = Double.parseDouble(priceText);
                 if (p < 0) {
                     Toast.makeText(requireContext(), "Price must be non-negative", Toast.LENGTH_SHORT).show();
@@ -233,7 +294,6 @@ public class AddItemFragment extends Fragment {
 
         setLoading(true);
 
-        // fetch user display name, then create item in the callback
         DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(uid);
         long finalPriceCents = priceCents;
         userRef.get().addOnCompleteListener(userTask -> {
@@ -266,13 +326,11 @@ public class AddItemFragment extends Fragment {
             item.put("authorId", uid);
             item.put("createdAt", ServerValue.TIMESTAMP);
             item.put("available", true);
-            item.put("categoryId", selected.get(0));
+            item.put("categoryId", selectedCatId);
 
             Map<String, Object> updates = new HashMap<>();
             updates.put("/items/" + itemId, item);
-            for (String catId : selected) {
-                updates.put("/category-items/" + catId + "/" + itemId, true);
-            }
+            updates.put("/category-items/" + selectedCatId + "/" + itemId, true);
 
             root.updateChildren(updates).addOnCompleteListener(task -> {
                 setLoading(false);

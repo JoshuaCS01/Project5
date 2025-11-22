@@ -9,6 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -54,13 +55,8 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
         //Sets the date and time
         long tempTime = cat.createdAt;
         String date = null;
-        date =  DateFormat.getDateTimeInstance().format(new Date(tempTime));
+        date =  new SimpleDateFormat("MMM d, yyyy HH:mm").format(new Date(tempTime));
         holder.meta.setText(date);
-
-        //Sets the seller username
-        String seller = cat.createdByName;
-        seller = "Sold by: " + seller;
-        holder.seller.setText(seller);
 
         holder.itemView.setOnClickListener(v -> {
             if (clickListener != null) clickListener.onItemClick(cat);
@@ -81,7 +77,6 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Holder
             super(itemView);
             name = itemView.findViewById(R.id.tvCategoryName);
             meta = itemView.findViewById(R.id.tvCategoryMeta);
-            seller = itemView.findViewById(R.id.seller);
             btnSettings = itemView.findViewById(R.id.btnSettings);
         }
     }

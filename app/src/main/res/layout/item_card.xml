@@ -32,9 +32,20 @@
         android:id="@+id/seller"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="meta"
+        android:text="seller"
         android:textSize="12sp"
         app:layout_constraintTop_toBottomOf="@id/tvItemMeta"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="6dp"/>
+
+    <TextView
+        android:id="@+id/category_name"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="category name"
+        android:textSize="12sp"
+        app:layout_constraintTop_toBottomOf="@id/seller"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="6dp"/>

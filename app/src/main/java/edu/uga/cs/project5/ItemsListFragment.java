@@ -22,8 +22,6 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
 
 public class ItemsListFragment extends Fragment {
 
@@ -64,8 +62,15 @@ public class ItemsListFragment extends Fragment {
 
         FloatingActionButton fab = root.findViewById(R.id.fabAddItem);
 
+        // <-- UPDATED: pass the current category to AddItemFragment so it will be preselected
         fab.setOnClickListener(v -> {
-            AddItemFragment f = new AddItemFragment();
+            AddItemFragment f;
+            if (categoryId != null) {
+                f = AddItemFragment.newInstance(categoryId, categoryName);
+            } else {
+                // fallback to default behavior if no category context
+                f = new AddItemFragment();
+            }
 
             requireActivity().getSupportFragmentManager()
                     .beginTransaction()
@@ -78,9 +83,13 @@ public class ItemsListFragment extends Fragment {
         TextView tvTitle = root.findViewById(R.id.tvItemsTitle);
         tvTitle.setText(categoryName != null ? categoryName : "Items");
 
-        mappingRef = FirebaseDatabase.getInstance().getReference("category-items").child(categoryId);
-
-        attachMappingListener();
+        if (categoryId != null) {
+            mappingRef = FirebaseDatabase.getInstance().getReference("category-items").child(categoryId);
+            attachMappingListener();
+        } else {
+            // fallback: don't crash if categoryId is null — show nothing or handle differently
+            adapter.setItems(new ArrayList<>());
+        }
 
         return root;
     }
@@ -133,7 +142,7 @@ public class ItemsListFragment extends Fragment {
     }
 
     private void detachMappingListener() {
-        if (mappingListener != null) mappingRef.removeEventListener(mappingListener);
+        if (mappingListener != null && mappingRef != null) mappingRef.removeEventListener(mappingListener);
     }
 
     @Override public void onDestroyView() {

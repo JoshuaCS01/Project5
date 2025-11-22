@@ -13,6 +13,7 @@ public class Item {
     public String categoryId; // may be present if single-category creation existed
 
     public String createdByName;
+    public String category;
 
     public Item() {}
 }
