@@ -25,7 +25,6 @@
         android:textSize="12sp"
         app:layout_constraintTop_toBottomOf="@id/tvItemTitle"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="6dp"/>
 
     <TextView
@@ -36,7 +35,6 @@
         android:textSize="12sp"
         app:layout_constraintTop_toBottomOf="@id/tvItemMeta"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="6dp"/>
 
     <TextView
@@ -47,7 +45,15 @@
         android:textSize="12sp"
         app:layout_constraintTop_toBottomOf="@id/seller"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="6dp"/>
+
+    <Button
+        android:id="@+id/btnBuy"
+        android:layout_width="wrap_content"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvItemTitle"
+        android:layout_height="wrap_content"
+        android:text="Buy" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

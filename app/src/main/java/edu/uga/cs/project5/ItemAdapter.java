@@ -3,9 +3,12 @@ package edu.uga.cs.project5;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.auth.FirebaseAuth;
 
 import java.text.BreakIterator;
 import java.text.DateFormat;
@@ -40,12 +43,26 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
         this.actionListener = l;
     }
 
+    public interface OnItemBuyListener {
+        void onBuyClicked(Item item);
+    }
+
+    private OnItemBuyListener buyListener;
+    public void setOnItemBuyListener(OnItemBuyListener l) {
+        this.buyListener = l;
+    }
+
     @Override public void onBindViewHolder(@NonNull Holder holder, int position) {
 
 
         //Sets the title
         Item item = items.get(position);
         holder.title.setText(item.title != null ? item.title : "—");
+
+        //Buy button visibility
+        String currentUid = FirebaseAuth.getInstance().getUid();
+        boolean isOwner = currentUid != null && currentUid.equals(item.authorId);
+        boolean isAvailable = item.available == null ? true : item.available;
 
         //Sets the price
         String price = null;
@@ -78,19 +95,47 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
             if (actionListener != null) actionListener.onItemClicked(item);
         });
 
+        if (holder.btnBuy != null) {
+
+            if (!isOwner && isAvailable) {
+                holder.btnBuy.setVisibility(View.VISIBLE);
+
+                if (item.isFree != null && item.isFree)
+                    holder.btnBuy.setText("Accept");
+                else
+                    holder.btnBuy.setText("Buy");
+
+                // Handle click
+                holder.btnBuy.setOnClickListener(v -> {
+                    if (buyListener != null) buyListener.onBuyClicked(item);
+                });
+
+            } else {
+                holder.btnBuy.setVisibility(View.GONE);
+                holder.btnBuy.setOnClickListener(null);
+            }
+        }
+
+
+        // item click behavior remains unchanged (if any)
+        holder.itemView.setOnClickListener(v -> {
+            if (actionListener != null) actionListener.onItemClicked(item);
+        });
+
     }
 
     @Override public int getItemCount() { return items.size(); }
 
     static class Holder extends RecyclerView.ViewHolder {
         TextView title, meta, seller, category;
-
+        Button btnBuy;
         Holder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.tvItemTitle);
             meta = itemView.findViewById(R.id.tvItemMeta);
             seller = itemView.findViewById(R.id.seller);
             category = itemView.findViewById(R.id.category_name);   // <-- NEW
+            btnBuy = itemView.findViewById(R.id.btnBuy);
         }
     }
 
