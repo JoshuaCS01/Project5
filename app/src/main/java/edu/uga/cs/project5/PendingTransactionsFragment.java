@@ -19,8 +19,8 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.database.ServerValue;
+import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,47 +36,58 @@ public class PendingTransactionsFragment extends Fragment {
 
     public PendingTransactionsFragment() { }
 
-    @Nullable @Override
+    @Nullable
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+
         View root = inflater.inflate(R.layout.fragment_transactions_list, container, false);
+
         rv = root.findViewById(R.id.rvTransactions);
         adapter = new TransactionAdapter();
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setAdapter(adapter);
 
-        // Wire adapter action listener (handles both row click and complete button)
+        // Wire adapter action listener (row click + complete button)
         adapter.setOnTransactionActionListener(new TransactionAdapter.OnTransactionActionListener() {
             @Override
             public void onTransactionClicked(Transaction tx) {
-                // optional: show details or nothing
-                Toast.makeText(requireContext(), "Clicked: " + tx.id, Toast.LENGTH_SHORT).show();
+                // Optional: show more details, for now just a toast
+                if (tx != null && tx.id != null && getContext() != null) {
+                    Toast.makeText(getContext(), "Transaction: " + tx.id, Toast.LENGTH_SHORT).show();
+                }
             }
 
             @Override
             public void onCompleteClicked(Transaction tx) {
                 if (tx == null || tx.id == null) {
-                    Toast.makeText(requireContext(), "Invalid transaction", Toast.LENGTH_SHORT).show();
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Invalid transaction", Toast.LENGTH_SHORT).show();
+                    }
                     return;
                 }
                 String currentUid = FirebaseAuth.getInstance().getUid();
                 if (currentUid == null) {
-                    Toast.makeText(requireContext(), "Sign in to manage transactions", Toast.LENGTH_SHORT).show();
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Sign in to manage transactions", Toast.LENGTH_SHORT).show();
+                    }
                     return;
                 }
 
-                // Only the buyer may mark complete in your flow — change this if you want seller to be able too
-                if (!currentUid.equals(tx.sellerId)) {
-                    Toast.makeText(requireContext(), "Only the buyer can mark this transaction complete", Toast.LENGTH_SHORT).show();
+                // Story 14: only the SELLER can confirm completion
+                if (tx.sellerId == null || !currentUid.equals(tx.sellerId)) {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Only the seller can mark this transaction complete", Toast.LENGTH_SHORT).show();
+                    }
                     return;
                 }
 
-                // Confirm with buyer (adapter also shows a confirmation dialog — this double-checks if needed)
                 new AlertDialog.Builder(requireContext())
                         .setTitle("Complete Transaction")
-                        .setMessage("Have you picked up the item and completed payment? Mark transaction as completed?")
-                        .setPositiveButton("Yes", (d, w) -> completeTransaction(tx.id, currentUid, tx.itemId))
+                        .setMessage("Confirm that the buyer has picked up the item and payment is complete?")
+                        .setPositiveButton("Yes", (d, w) ->
+                                completeTransaction(tx.id, currentUid, tx.itemId))
                         .setNegativeButton("Cancel", null)
                         .show();
             }
@@ -87,43 +98,85 @@ public class PendingTransactionsFragment extends Fragment {
         return root;
     }
 
+    /**
+     * Attach a listener to /transactions and build a list of
+     * ONLY this user's transactions with the given status,
+     * sorted from most recent to oldest.
+     */
     private void attachListener(String status) {
-        if (valueListener != null && txRef != null) txRef.removeEventListener(valueListener);
+        if (valueListener != null && txRef != null) {
+            txRef.removeEventListener(valueListener);
+        }
+
         valueListener = new ValueEventListener() {
-            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
-                List<Transaction> list = new ArrayList<>();
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                String currentUid = FirebaseAuth.getInstance().getUid();
+                if (currentUid == null) {
+                    if (getContext() != null) {
+                        Toast.makeText(getContext(), "Sign in to view your pending transactions", Toast.LENGTH_SHORT).show();
+                    }
+                    adapter.setItems(new ArrayList<>());
+                    return;
+                }
+
+                List<Transaction> mine = new ArrayList<>();
                 for (DataSnapshot s : snapshot.getChildren()) {
                     Transaction t = s.getValue(Transaction.class);
                     if (t == null) continue;
                     t.id = s.getKey();
-                    if (t.status != null && t.status.equalsIgnoreCase(status)) {
-                        list.add(t);
+
+                    boolean statusMatch =
+                            t.status != null && t.status.equalsIgnoreCase(status);
+
+                    boolean isMine =
+                            (t.buyerId != null && t.buyerId.equals(currentUid)) ||
+                                    (t.sellerId != null && t.sellerId.equals(currentUid));
+
+                    if (statusMatch && isMine) {
+                        mine.add(t);
                     }
                 }
-                adapter.setItems(list);
+
+                // Sort by createdAt desc (most recent first)
+                mine.sort((a, b) -> {
+                    long ca = (a.createdAt != null) ? a.createdAt : 0L;
+                    long cb = (b.createdAt != null) ? b.createdAt : 0L;
+                    return Long.compare(cb, ca);
+                });
+
+                adapter.setCurrentUserId(currentUid);
+                adapter.setItems(mine);
             }
 
-            @Override public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(requireContext(), "Failed to load transactions: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (getContext() != null) {
+                    Toast.makeText(getContext(),
+                            "Failed to load transactions: " + error.getMessage(),
+                            Toast.LENGTH_SHORT).show();
+                }
             }
         };
         txRef.addValueEventListener(valueListener);
     }
 
-    @Override public void onDestroyView() {
+    @Override
+    public void onDestroyView() {
         super.onDestroyView();
-        if (valueListener != null && txRef != null) txRef.removeEventListener(valueListener);
+        if (valueListener != null && txRef != null) {
+            txRef.removeEventListener(valueListener);
+        }
     }
 
-    /**
-     * Marks a transaction as completed (updates status and completedAt).
-     * Optionally clears the item's transactionId (uncomment if desired).
-     */
     private void completeTransaction(String txId, String actorUid, String itemId) {
         if (txId == null || actorUid == null) {
-            Toast.makeText(requireContext(), "Missing transaction data", Toast.LENGTH_SHORT).show();
+            if (getContext() != null) {
+                Toast.makeText(getContext(), "Missing transaction data", Toast.LENGTH_SHORT).show();
+            }
             return;
         }
+
         DatabaseReference root = FirebaseDatabase.getInstance().getReference();
 
         Map<String, Object> updates = new HashMap<>();
@@ -131,20 +184,20 @@ public class PendingTransactionsFragment extends Fragment {
         updates.put("/transactions/" + txId + "/completedAt", ServerValue.TIMESTAMP);
         updates.put("/transactions/" + txId + "/completedBy", actorUid);
 
-        // OPTIONAL: clear the transactionId on the item so it no longer points to transaction
-        // if you want to keep a permanent link, leave this commented.
-        if (itemId != null) {
-            // updates.put("/items/" + itemId + "/transactionId", null);
-            // OR: keep it but leave available = false so item remains marked sold
-        }
-
         root.updateChildren(updates).addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
-                Toast.makeText(requireContext(), "Transaction marked completed", Toast.LENGTH_SHORT).show();
+                if (getContext() != null) {
+                    Toast.makeText(getContext(), "Transaction marked completed", Toast.LENGTH_SHORT).show();
+                }
             } else {
-                String msg = task.getException() != null ? task.getException().getMessage() : "";
+                String msg = task.getException() != null
+                        ? task.getException().getMessage() : "";
                 Log.e("PendingTxFragment", "Failed to complete tx: " + msg, task.getException());
-                Toast.makeText(requireContext(), "Failed to complete transaction: " + msg, Toast.LENGTH_LONG).show();
+                if (getContext() != null) {
+                    Toast.makeText(getContext(),
+                            "Failed to complete transaction: " + msg,
+                            Toast.LENGTH_LONG).show();
+                }
             }
         });
     }

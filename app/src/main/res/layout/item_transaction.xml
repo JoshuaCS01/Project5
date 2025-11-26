@@ -7,31 +7,48 @@
     android:orientation="horizontal"
     android:padding="12dp">
 
-
     <LinearLayout
         android:id="@+id/linearLine"
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingEnd="16dp"
         app:layout_constraintStart_toStartOf="parent"
-        android:orientation="vertical">
+        app:layout_constraintEnd_toStartOf="@+id/btnComplete"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <TextView
             android:id="@+id/tvTxId"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Transaction id" />
+            android:text="ID:"
+            android:textStyle="bold"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/tvTxStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Status" />
+            android:text="Status"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/tvTxTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Time" />
+            android:text="Time"
+            android:textSize="14sp" />
+
+        <!-- NEW: role label ("You are: Buyer" / "You are: Seller") -->
+        <TextView
+            android:id="@+id/tvTxRole"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:visibility="gone" />
 
     </LinearLayout>
 
@@ -41,7 +58,9 @@
         android:layout_height="wrap_content"
         android:text="Complete"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="@id/linearLine"
+        app:layout_constraintBottom_toBottomOf="@id/linearLine" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+
 
