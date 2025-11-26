@@ -10,12 +10,11 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 
-import java.text.BreakIterator;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
 
@@ -52,51 +51,61 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
         this.buyListener = l;
     }
 
-    @Override public void onBindViewHolder(@NonNull Holder holder, int position) {
+    @Override
+    public void onBindViewHolder(@NonNull Holder holder, int position) {
 
-
-        //Sets the title
         Item item = items.get(position);
+
+        // Title
         holder.title.setText(item.title != null ? item.title : "—");
 
-        //Buy button visibility
+        // Description (read-only)
+        if (item.description != null && !item.description.trim().isEmpty()) {
+            holder.description.setText(item.description.trim());
+        } else {
+            holder.description.setText(""); // or "No description"
+        }
+
+        // Buy button visibility
         String currentUid = FirebaseAuth.getInstance().getUid();
         boolean isOwner = currentUid != null && currentUid.equals(item.authorId);
         boolean isAvailable = item.available == null ? true : item.available;
 
-        //Sets the price
-        String price = null;
+        // Price
+        String price;
         if (item.isFree != null && item.isFree) {
             price = "FREE";
+        } else if (item.priceCents != null) {
+            price = String.format(Locale.getDefault(), "$%.2f", item.priceCents / 100.0);
+        } else {
+            price = "—";
         }
-        if (item.priceCents != null) {
-            price = String.format("$%.2f", item.priceCents / 100.0);
-        }
 
-        //Sets the date and time
-        long tempTime = item.createdAt;
-        String date = null;
-        date =  new SimpleDateFormat("MMM d, yyyy HH:mm").format(new Date(tempTime));
-        date = price + " • " + date;
-        holder.meta.setText(date);
+        // Date/time
+        long tempTime = item.createdAt != null ? item.createdAt : 0L;
+        String date = new SimpleDateFormat("MMM d, yyyy HH:mm", Locale.getDefault())
+                .format(new Date(tempTime));
+        String meta = price + " • " + date;
+        holder.meta.setText(meta);
 
-        //Sets the seller username
-        String seller = item.createdByName;
-        seller = "Sold by: " + seller;
-        holder.seller.setText(seller);
+        // Seller username
+        String seller = item.createdByName != null ? item.createdByName : "Unknown";
+        holder.seller.setText("Sold by: " + seller);
 
+        // Category
         if (item.category != null) {
-            holder.category.setText( "Category: " + item.category);
+            holder.category.setText("Category: " + item.category);
         } else {
             holder.category.setText("Category: —");
         }
 
+        // Item click
         holder.itemView.setOnClickListener(v -> {
             if (actionListener != null) actionListener.onItemClicked(item);
         });
 
+        // Buy / Accept button
         if (holder.btnBuy != null) {
-
             if (!isOwner && isAvailable) {
                 holder.btnBuy.setVisibility(View.VISIBLE);
 
@@ -105,7 +114,6 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
                 else
                     holder.btnBuy.setText("Buy");
 
-                // Handle click
                 holder.btnBuy.setOnClickListener(v -> {
                     if (buyListener != null) buyListener.onBuyClicked(item);
                 });
@@ -115,28 +123,22 @@ public class ItemAdapter extends RecyclerView.Adapter<ItemAdapter.Holder> {
                 holder.btnBuy.setOnClickListener(null);
             }
         }
-
-
-        // item click behavior remains unchanged (if any)
-        holder.itemView.setOnClickListener(v -> {
-            if (actionListener != null) actionListener.onItemClicked(item);
-        });
-
     }
 
     @Override public int getItemCount() { return items.size(); }
 
     static class Holder extends RecyclerView.ViewHolder {
-        TextView title, meta, seller, category;
+        TextView title, description, meta, seller, category;
         Button btnBuy;
+
         Holder(@NonNull View itemView) {
             super(itemView);
             title = itemView.findViewById(R.id.tvItemTitle);
+            description = itemView.findViewById(R.id.tvItemDescription);
             meta = itemView.findViewById(R.id.tvItemMeta);
             seller = itemView.findViewById(R.id.seller);
-            category = itemView.findViewById(R.id.category_name);   // <-- NEW
+            category = itemView.findViewById(R.id.category_name);
             btnBuy = itemView.findViewById(R.id.btnBuy);
         }
     }
-
 }

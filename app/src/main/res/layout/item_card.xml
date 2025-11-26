@@ -1,59 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:card_view="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="12dp">
+    android:layout_margin="8dp"
+    card_view:cardUseCompatPadding="true"
+    card_view:cardElevation="2dp">
 
-    <TextView
-        android:id="@+id/tvItemTitle"
-        android:layout_width="0dp"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Item Title"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        android:orientation="vertical"
+        android:padding="12dp">
 
-    <TextView
-        android:id="@+id/tvItemMeta"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="meta"
-        android:textSize="12sp"
-        app:layout_constraintTop_toBottomOf="@id/tvItemTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="6dp"/>
+        <TextView
+            android:id="@+id/tvItemTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Item Title"
+            android:textStyle="bold"
+            android:textSize="16sp" />
 
-    <TextView
-        android:id="@+id/seller"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="seller"
-        android:textSize="12sp"
-        app:layout_constraintTop_toBottomOf="@id/tvItemMeta"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="6dp"/>
+        <!-- NEW: description line -->
+        <TextView
+            android:id="@+id/tvItemDescription"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Description goes here"
+            android:textSize="14sp"
+            android:layout_marginTop="2dp" />
 
-    <TextView
-        android:id="@+id/category_name"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="category name"
-        android:textSize="12sp"
-        app:layout_constraintTop_toBottomOf="@id/seller"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="6dp"/>
+        <TextView
+            android:id="@+id/tvItemMeta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Price • Date"
+            android:textSize="14sp"
+            android:layout_marginTop="2dp" />
 
-    <Button
-        android:id="@+id/btnBuy"
-        android:layout_width="wrap_content"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/tvItemTitle"
-        android:layout_height="wrap_content"
-        android:text="Buy" />
+        <TextView
+            android:id="@+id/seller"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Sold by: User"
+            android:textSize="14sp"
+            android:layout_marginTop="2dp" />
 
+        <TextView
+            android:id="@+id/category_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Category: —"
+            android:textSize="14sp"
+            android:layout_marginTop="2dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <Button
+            android:id="@+id/btnBuy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Buy"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

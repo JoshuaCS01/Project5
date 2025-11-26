@@ -20,47 +20,43 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Description"
-            android:inputType="textMultiLine"
-            android:lines="4"
-            android:gravity="top"
-            android:layout_marginTop="8dp"/>
-
-        <EditText
-            android:id="@+id/etItemPrice"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Price (e.g. 12.99)"
-            android:inputType="numberDecimal"
-            android:layout_marginTop="8dp"/>
+            android:minLines="2"
+            android:maxLines="4" />
 
         <CheckBox
             android:id="@+id/cbFree"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Free (no price)"
-            android:layout_marginTop="8dp"/>
+            android:text="Free" />
+
+        <EditText
+            android:id="@+id/etItemPrice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Price (e.g. 9.99)"
+            android:inputType="numberDecimal" />
+
+        <Button
+            android:id="@+id/btnSelectCats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Select Category" />
 
         <TextView
             android:id="@+id/tvSelectedCats"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="No categories selected"
-            android:layout_marginTop="8dp"/>
-
-        <Button
-            android:id="@+id/btnSelectCats"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Select category"
-            android:layout_marginTop="12dp"/>
+            android:layout_marginTop="4dp" />
 
         <Button
             android:id="@+id/btnAddCategory"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Add new category"
-            android:layout_marginTop="8dp"/>
+            android:text="Add Category"
+            android:layout_marginTop="8dp" />
 
+        <!-- Post button -->
         <Button
             android:id="@+id/btnPostItem"
             android:layout_width="match_parent"

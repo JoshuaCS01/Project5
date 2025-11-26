@@ -43,7 +43,8 @@ public class MyItemsFragment extends Fragment {
 
     public MyItemsFragment() { }
 
-    @Nullable @Override
+    @Nullable
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
@@ -52,19 +53,13 @@ public class MyItemsFragment extends Fragment {
         rv = root.findViewById(R.id.rvItems);
         TextView title = root.findViewById(R.id.tvItemsTitle);
         title.setText("My Items");
-        progress = root.findViewById(R.id.progress); // optional: reuse layout's progress view (add if missing)
+        progress = root.findViewById(R.id.progress); // optional: reuse layout's progress view
         adapter = new ItemAdapter();
         rv.setLayoutManager(new LinearLayoutManager(requireContext()));
         rv.setAdapter(adapter);
 
         // enable adapter click callbacks
-        adapter.setOnItemActionListener(new ItemAdapter.OnItemActionListener() {
-            @Override
-            public void onItemClicked(Item item) {
-                // show dialog with Edit / Delete actions
-                showItemActionsDialog(item);
-            }
-        });
+        adapter.setOnItemActionListener(item -> showItemActionsDialog(item));
 
         // load current user's items
         String uid = FirebaseAuth.getInstance().getUid();
@@ -81,14 +76,16 @@ public class MyItemsFragment extends Fragment {
     }
 
     private void setLoading(boolean loading) {
-        if (progress != null) progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+        if (progress != null) {
+            progress.setVisibility(loading ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void attachItemsListener(String uid) {
         setLoading(true);
-        // listen for items where authorId == uid
         itemsListener = new ValueEventListener() {
-            @Override public void onDataChange(@NonNull DataSnapshot snapshot) {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
                 List<Item> mine = new ArrayList<>();
                 for (DataSnapshot s : snapshot.getChildren()) {
                     Item it = s.getValue(Item.class);
@@ -97,27 +94,31 @@ public class MyItemsFragment extends Fragment {
                         mine.add(it);
                     }
                 }
-                // optional: sort by createdAt desc
-                mine.sort((a,b) -> Long.compare(b.createdAt, a.createdAt));
+                mine.sort((a, b) -> Long.compare(b.createdAt != null ? b.createdAt : 0L,
+                        a.createdAt != null ? a.createdAt : 0L));
                 adapter.setItems(mine);
                 setLoading(false);
             }
 
-            @Override public void onCancelled(@NonNull DatabaseError error) {
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
                 setLoading(false);
-                Toast.makeText(requireContext(), "Failed to load your items: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(),
+                        "Failed to load your items: " + error.getMessage(),
+                        Toast.LENGTH_SHORT).show();
             }
         };
-        // listen once at top-level 'items' and filter client-side;
-        // if you have lots of items consider a database rule or index to query on authorId (orderByChild+equalTo)
         itemsRef.addValueEventListener(itemsListener);
     }
 
     private void detachItemsListener() {
-        if (itemsRef != null && itemsListener != null) itemsRef.removeEventListener(itemsListener);
+        if (itemsRef != null && itemsListener != null) {
+            itemsRef.removeEventListener(itemsListener);
+        }
     }
 
-    @Override public void onDestroyView() {
+    @Override
+    public void onDestroyView() {
         super.onDestroyView();
         detachItemsListener();
     }
@@ -180,7 +181,10 @@ public class MyItemsFragment extends Fragment {
                         }
                         try {
                             double p = Double.parseDouble(priceText);
-                            if (p < 0) { Toast.makeText(requireContext(), "Price must be non-negative", Toast.LENGTH_SHORT).show(); return; }
+                            if (p < 0) {
+                                Toast.makeText(requireContext(), "Price must be non-negative", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                             newPriceCents = Math.round(p * 100.0);
                         } catch (Exception e) {
                             Toast.makeText(requireContext(), "Invalid price", Toast.LENGTH_SHORT).show();
@@ -188,16 +192,21 @@ public class MyItemsFragment extends Fragment {
                         }
                     }
 
-                    // build update map — only allowed fields
                     Map<String, Object> updates = new HashMap<>();
                     updates.put("/items/" + item.id + "/title", newTitle);
-                    if (!TextUtils.isEmpty(newDesc)) updates.put("/items/" + item.id + "/description", newDesc);
-                    else updates.put("/items/" + item.id + "/description", null); // clear if empty
+                    if (!TextUtils.isEmpty(newDesc)) {
+                        updates.put("/items/" + item.id + "/description", newDesc);
+                    } else {
+                        updates.put("/items/" + item.id + "/description", null);
+                    }
                     updates.put("/items/" + item.id + "/isFree", newIsFree);
-                    if (newPriceCents != null) updates.put("/items/" + item.id + "/priceCents", newPriceCents);
-                    else updates.put("/items/" + item.id + "/priceCents", null);
+                    if (newPriceCents != null) {
+                        updates.put("/items/" + item.id + "/priceCents", newPriceCents);
+                    } else {
+                        updates.put("/items/" + item.id + "/priceCents", null);
+                    }
 
-                    // IMPORTANT: do NOT modify categoryId or createdAt — they are intentionally omitted here.
+                    // Do not touch categoryId or createdAt here.
 
                     setLoading(true);
                     FirebaseDatabase.getInstance().getReference().updateChildren(updates)
@@ -207,7 +216,9 @@ public class MyItemsFragment extends Fragment {
                                     Toast.makeText(requireContext(), "Item updated", Toast.LENGTH_SHORT).show();
                                 } else {
                                     String msg = task.getException() != null ? task.getException().getMessage() : "";
-                                    Toast.makeText(requireContext(), "Failed to update: " + msg, Toast.LENGTH_LONG).show();
+                                    Toast.makeText(requireContext(),
+                                            "Failed to update: " + msg,
+                                            Toast.LENGTH_LONG).show();
                                 }
                             });
                 })
@@ -217,7 +228,6 @@ public class MyItemsFragment extends Fragment {
 
     // Check pending transactions, then delete item and mapping
     private void confirmAndDeleteItem(Item item) {
-        // Only allow owner to delete
         String uid = FirebaseAuth.getInstance().getUid();
         if (uid == null || !uid.equals(item.authorId)) {
             Toast.makeText(requireContext(), "You can only delete your own items", Toast.LENGTH_SHORT).show();
@@ -234,17 +244,49 @@ public class MyItemsFragment extends Fragment {
 
     private void checkPendingTransactionsAndDelete(Item item) {
         setLoading(true);
-        // NOTE: schema assumption: transactions stored under /transactions and each transaction has fields:
-        // - itemId (String)
-        // - status (String) where "pending" means a pending transaction.
-        // If your schema differs, adjust the path & checks accordingly.
         DatabaseReference txRef = FirebaseDatabase.getInstance().getReference("transactions");
+
+        // Try indexed query first
         txRef.orderByChild("itemId").equalTo(item.id).get().addOnCompleteListener(task -> {
             if (!task.isSuccessful()) {
-                setLoading(false);
-                Toast.makeText(requireContext(), "Failed to check transactions", Toast.LENGTH_SHORT).show();
+                // Fallback: read all transactions, like in ItemsListFragment
+                txRef.get().addOnCompleteListener(fb -> {
+                    if (!fb.isSuccessful()) {
+                        setLoading(false);
+                        Toast.makeText(requireContext(),
+                                "Failed to check transactions",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    DataSnapshot snap = fb.getResult();
+                    boolean hasPending = false;
+                    if (snap != null) {
+                        for (DataSnapshot s : snap.getChildren()) {
+                            String itemIdOnTx = s.child("itemId").getValue(String.class);
+                            String status = s.child("status").getValue(String.class);
+                            if (itemIdOnTx != null && itemIdOnTx.equals(item.id)
+                                    && status != null && status.equalsIgnoreCase("pending")) {
+                                hasPending = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (hasPending) {
+                        setLoading(false);
+                        Toast.makeText(requireContext(),
+                                "Cannot delete item — it has a pending transaction",
+                                Toast.LENGTH_LONG).show();
+                        return;
+                    }
+
+                    // No pending transaction; proceed to delete
+                    performItemDelete(item);
+                });
                 return;
             }
+
+            // Query worked: scan results
             DataSnapshot snap = task.getResult();
             boolean hasPending = false;
             if (snap != null) {
@@ -259,25 +301,38 @@ public class MyItemsFragment extends Fragment {
 
             if (hasPending) {
                 setLoading(false);
-                Toast.makeText(requireContext(), "Cannot delete item — it has a pending transaction", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(),
+                        "Cannot delete item — it has a pending transaction",
+                        Toast.LENGTH_LONG).show();
                 return;
             }
 
-            // proceed to delete: remove /items/{itemId} and /category-items/{categoryId}/{itemId}
-            Map<String, Object> removals = new HashMap<>();
-            removals.put("/items/" + item.id, null);
-            if (item.categoryId != null) {
-                removals.put("/category-items/" + item.categoryId + "/" + item.id, null);
-            }
-            FirebaseDatabase.getInstance().getReference().updateChildren(removals).addOnCompleteListener(delTask -> {
-                setLoading(false);
-                if (delTask.isSuccessful()) {
-                    Toast.makeText(requireContext(), "Item deleted", Toast.LENGTH_SHORT).show();
-                } else {
-                    String msg = delTask.getException() != null ? delTask.getException().getMessage() : "";
-                    Toast.makeText(requireContext(), "Failed to delete: " + msg, Toast.LENGTH_LONG).show();
-                }
-            });
+            // No pending; delete item
+            performItemDelete(item);
         });
+    }
+
+    private void performItemDelete(Item item) {
+        Map<String, Object> removals = new HashMap<>();
+        removals.put("/items/" + item.id, null);
+        if (item.categoryId != null) {
+            removals.put("/category-items/" + item.categoryId + "/" + item.id, null);
+        }
+
+        FirebaseDatabase.getInstance().getReference()
+                .updateChildren(removals)
+                .addOnCompleteListener(delTask -> {
+                    setLoading(false);
+                    if (delTask.isSuccessful()) {
+                        Toast.makeText(requireContext(), "Item deleted", Toast.LENGTH_SHORT).show();
+                    } else {
+                        String msg = delTask.getException() != null
+                                ? delTask.getException().getMessage()
+                                : "";
+                        Toast.makeText(requireContext(),
+                                "Failed to delete: " + msg,
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
     }
 }

@@ -1,6 +1,6 @@
-// Item.java
 package edu.uga.cs.project5;
 
+// Item.java
 public class Item {
     public String id;
     public String title;
@@ -10,10 +10,11 @@ public class Item {
     public Long priceCents;
     public String authorId;
     public Boolean available = true;
-    public String categoryId; // may be present if single-category creation existed
+    public String categoryId; // if you store mapping
 
     public String createdByName;
-    public String category;
+    public String category;   // filled when loading items with category name
 
     public Item() {}
 }
+

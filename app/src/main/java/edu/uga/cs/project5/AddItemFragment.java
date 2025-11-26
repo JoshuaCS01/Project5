@@ -170,7 +170,6 @@ public class AddItemFragment extends Fragment {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Select a category")
                 .setSingleChoiceItems(names, selectedCatIndex, (dialog, which) -> {
-                    // update selection immediately when user taps
                     selectedCatIndex = which;
                 })
                 .setPositiveButton("OK", (d, w) -> updateSelectedCatsText())
@@ -182,7 +181,6 @@ public class AddItemFragment extends Fragment {
         if (selectedCatIndex >= 0 && selectedCatIndex < catNames.size()) {
             tvSelectedCats.setText(catNames.get(selectedCatIndex));
         } else if (initialCategoryName != null && (selectedCatIndex < 0 || catNames.isEmpty())) {
-            // if categories haven't loaded yet but we were given a name, show it
             tvSelectedCats.setText(initialCategoryName);
         } else {
             tvSelectedCats.setText("No categories selected");
@@ -230,10 +228,9 @@ public class AddItemFragment extends Fragment {
                                     }
                                     int idx = catIds.indexOf(newId);
                                     selectedCatIndex = idx >= 0 ? idx : -1;
-                                    // since user just added a category, clear any initialCategoryId (they intentionally changed)
+                                    // since user just added a category, clear any initialCategoryId
                                     initialCategoryId = null;
                                     initialCategoryName = null;
-                                    // make sure select button is visible so they can change if desired
                                     btnSelectCats.setVisibility(View.VISIBLE);
                                     updateSelectedCatsText();
                                 } else {
