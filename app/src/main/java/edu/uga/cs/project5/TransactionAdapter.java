@@ -55,7 +55,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     public void onBindViewHolder(@NonNull Holder holder, int position) {
         Transaction t = items.get(position);
 
-        holder.tvId.setText(t.id != null ? "ID: " + t.id : "—");
+        holder.tvId.setText(t.id != null ? "Item: " + t.itemTitle : "—");
         holder.tvStatus.setText("Status: " + (t.status != null ? t.status : "—"));
 
         if (t.createdAt != null) {
@@ -66,11 +66,19 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             holder.tvTime.setText("Created: —");
         }
 
+        // Hide complete button for completed transactions
+        if (t.status != null && t.status.equalsIgnoreCase("completed")) {
+            holder.btnComplete.setVisibility(View.GONE);
+        } else {
+            holder.btnComplete.setVisibility(View.VISIBLE);
+        }
+
         // Mark role: Buyer or Seller
         if (currentUserId != null) {
             String roleText = "";
             if (t.buyerId != null && currentUserId.equals(t.buyerId)) {
                 roleText = "You are: Buyer";
+                holder.btnComplete.setVisibility(View.GONE);
             } else if (t.sellerId != null && currentUserId.equals(t.sellerId)) {
                 roleText = "You are: Seller";
             }
@@ -85,13 +93,6 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         } else {
             holder.tvRole.setText("");
             holder.tvRole.setVisibility(View.GONE);
-        }
-
-        // Hide complete button for completed transactions
-        if (t.status != null && t.status.equalsIgnoreCase("completed")) {
-            holder.btnComplete.setVisibility(View.GONE);
-        } else {
-            holder.btnComplete.setVisibility(View.VISIBLE);
         }
 
         // Row click

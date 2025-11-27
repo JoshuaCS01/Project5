@@ -234,6 +234,7 @@ public class ItemsListFragment extends Fragment {
         tx.put("status", "pending");
         if (amountCents != null) tx.put("amountCents", amountCents);
         tx.put("createdAt", ServerValue.TIMESTAMP);
+        tx.put("itemTitle", item.title);
 
         Map<String, Object> updates = new HashMap<>();
         updates.put("/transactions/" + txId, tx);
@@ -257,31 +258,6 @@ public class ItemsListFragment extends Fragment {
             }
         });
     }
-
-    private void completeTransaction(String txId, String actorUid) {
-        if (txId == null) return;
-
-        DatabaseReference txRef = FirebaseDatabase.getInstance().getReference("transactions").child(txId);
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("status", "completed");
-        updates.put("completedAt", ServerValue.TIMESTAMP);
-        // optionally record who completed it
-        if (actorUid != null) updates.put("completedBy", actorUid);
-
-        txRef.updateChildren(updates).addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                Toast.makeText(requireContext(), "Transaction completed", Toast.LENGTH_SHORT).show();
-            } else {
-                Exception ex = task.getException();
-                String msg = ex != null ? ex.getMessage() : "";
-                Log.e("ItemsListFragment", "Failed to complete transaction: " + msg, ex);
-                Toast.makeText(requireContext(), "Failed to complete transaction: " + msg, Toast.LENGTH_LONG).show();
-            }
-        });
-    }
-
-
-
 
     private void attachMappingListener() {
         mappingListener = new ValueEventListener() {
